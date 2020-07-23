@@ -4,11 +4,17 @@
 \alias{big_cprodVec}
 \title{Cross-product with a vector}
 \usage{
-big_cprodVec(X, y.row, ind.row = rows_along(X),
-  ind.col = cols_along(X), center = NULL, scale = NULL)
+big_cprodVec(
+  X,
+  y.row,
+  ind.row = rows_along(X),
+  ind.col = cols_along(X),
+  center = NULL,
+  scale = NULL
+)
 }
 \arguments{
-\item{X}{A \link[=FBM-class]{FBM}.}
+\item{X}{An object of class \link[=FBM-class]{FBM}.}
 
 \item{y.row}{A vector of same size as \code{ind.row}.}
 

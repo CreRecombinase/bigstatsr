@@ -9,6 +9,17 @@ ALL.TYPES <- c(
   "double"         = 8L
 )
 
+ALL.SIZES <- c(
+  "raw"            = 1L,
+  "unsigned char"  = 1L,
+  "unsigned short" = 2L,
+  "integer"        = 4L,
+  "float"          = 4L,
+  "double"         = 8L
+)
+
+NIL_PTR <- methods::new("externalptr")
+
 ################################################################################
 
 #' Replace extension '.bk'
@@ -16,7 +27,7 @@ ALL.TYPES <- c(
 #' @param path String with extension '.bk'.
 #' @param replacement Replacement of '.bk'. Default replaces by nothing.
 #' @param stop_if_not_ext If `replacement != ""`, whether to error if
-#'   replacement is not an extension (starting with a '.').
+#'   replacement is not an extension (i.e. starting with a dot).
 #'
 #' @return String with extension '.bk' replaced by `replacement`.
 #' @export
@@ -40,27 +51,36 @@ sub_bk <- function(path, replacement = "", stop_if_not_ext = TRUE) {
 #'
 #' A reference class for storing and accessing matrix-like data stored in files
 #' on disk. This is very similar to Filebacked Big Matrices provided by the
-#' **bigmemory** package. Yet, the implementation is lighter.
+#' **bigmemory** package (see [the corresponding vignette](http://bit.ly/2SRX5w4)).
 #'
 #' @details
-#' An FBM object has many field:
+#' An object of class FBM has many fields:
 #'   - `$address`: address of the external pointer containing the underlying
-#'     C++ object, to be used as a `XPtr<FBM>` in C++ code
-#'   - `$extptr`: use `$address` instead
-#'   - `$nrow`
-#'   - `$ncol`
-#'   - `$type`
+#'     C++ object for read-only mapping, to be used as a `XPtr<FBM>` in C++ code
+#'   - `$extptr`: (internal) use `$address` instead
+#'   - `$address_rw`: address of the external pointer containing the underlying
+#'     C++ object for read/write mapping, to be used as a `XPtr<FBM_RW>` in C++ code
+#'   - `$extptr_rw`: (internal) use `$address_rw` instead
+#'   - `$nrow`: number of rows
+#'   - `$ncol`: number of columns
+#'   - `$type`: (internal) use `type_size` or `type_chr` instead
+#'   - `$type_chr`: FBM type as character, e.g. "double"
+#'   - `$type_size`: size of FBM type in bytes (e.g. "double" is 8 and "float" is 4)
 #'   - `$backingfile` or `$bk`: File with extension 'bk' that stores the numeric
 #'     data of the FBM
 #'   - `$rds`: 'rds' file (that may not exist) corresponding to the 'bk' file
 #'   - `$is_saved`: whether this object is stored in `$rds`?
+#'   - `$is_read_only`: whether it is (not) allowed to modify data?
 #'
 #' And some methods:
 #'   - `$save()`: Save the FBM object in `$rds`. Returns the FBM.
 #'   - `add_columns(<ncol_add>)`: Add some columns to the FBM by appending the
 #'     backingfile with some data. Returns the FBM invisibly.
-#'   - `$bm()`: Get this object as a `filebacked.big.matrix`.
-#'   - `$bm.desc()`: Get this object as a `filebacked.big.matrix` descriptor.
+#'   - `$bm()`: Get this object as a `filebacked.big.matrix`
+#'     to be used by package {bigmemory}.
+#'   - `$bm.desc()`: Get this object as a `filebacked.big.matrix` descriptor
+#'     to be used by package {bigmemory}.
+#'   - `$check_write_permissions()`: Error if the FBM is read-only.
 #'
 #' @examples
 #' mat <- matrix(1:4, 2)
@@ -76,7 +96,8 @@ sub_bk <- function(path, replacement = "", stop_if_not_ext = TRUE) {
 #' X[, -1]
 #' X[, c(TRUE, FALSE)]
 #' X[cbind(1:10, 1:10)] <- NA_real_
-#' X[]
+#'
+#' X[]  # access as standard R matrix
 #'
 #' @exportClass FBM
 #'
@@ -86,30 +107,54 @@ FBM_RC <- methods::setRefClass(
 
   fields = list(
     extptr = "externalptr",
+    extptr_rw = "externalptr",
     nrow = "numeric",
     ncol = "numeric",
     type = "integer",
     backingfile = "character",
+    is_read_only = "logical",
 
     #### Active bindings
     # Same idea as in package phaverty/bigmemoryExtras
     address = function() {
-      if (identical(.self$extptr, methods::new("externalptr"))) { # nil
-        .self$extptr <- getXPtrFBM(.self$bk,
-                                   .self$nrow,
-                                   .self$ncol,
-                                   .self$type)
+
+      if (identical(.self$extptr, NIL_PTR)) {
+        .self$extptr <- getXPtrFBM(
+          path = .self$bk,
+          n    = .self$nrow,
+          m    = .self$ncol,
+          type = .self$type
+        )
       }
+
       .self$extptr
+    },
+    address_rw = function() {
+
+      .self$check_write_permissions()
+
+      if (identical(.self$extptr_rw, NIL_PTR)) {
+        .self$extptr_rw <- getXPtrFBM_RW(
+          path = .self$bk,
+          n    = .self$nrow,
+          m    = .self$ncol,
+          type = .self$type
+        )
+      }
+
+      .self$extptr_rw
     },
 
     bk = function() .self$backingfile,
     rds = function() sub_bk(.self$bk, ".rds"),
-    is_saved = function() file.exists(.self$rds)
+    is_saved = function() file.exists(.self$rds),
+    type_chr = function() names(.self$type),
+    type_size = function() ALL.SIZES[[.self$type_chr]]
   ),
 
   methods = list(
-    initialize = function(nrow, ncol, type, init, backingfile, create_bk) {
+    initialize = function(nrow, ncol, type, init, backingfile, create_bk,
+                          is_read_only) {
 
       assert_int(nrow)
       assert_int(ncol)
@@ -123,14 +168,22 @@ FBM_RC <- methods::setRefClass(
         assert_exist(bkfile)
       }
 
-      .self$backingfile <- normalizePath(bkfile)
-      .self$nrow        <- nrow
-      .self$ncol        <- ncol
-      .self$type        <- ALL.TYPES[type]  # keep int and string
+      .self$backingfile  <- normalizePath(bkfile)
+      .self$nrow         <- nrow
+      .self$ncol         <- ncol
+      .self$type         <- ALL.TYPES[type]  # keep int and string
+      .self$check_dimensions()
 
-      .self$address  # connect once
+      ## init pointers
+      .self$extptr <- .self$extptr_rw <- NIL_PTR
 
-      if (!is.null(init)) .self[] <- init
+      if (!is.null(init)) {
+        if (!create_bk) # can only init new FBMs
+          stop2("You can't use `init` when using `create_bk = FALSE`.")
+        .self$is_read_only <- FALSE
+        .self[] <- init
+      }
+      .self$is_read_only <- is_read_only
 
       .self
     },
@@ -140,7 +193,9 @@ FBM_RC <- methods::setRefClass(
       .self
     },
 
-    add_columns = function(ncol_add) {
+    add_columns = function(ncol_add, save_again = TRUE) {
+
+      .self$check_write_permissions()
 
       assert_int(ncol_add)
       size_before <- file.size(bkfile <- .self$bk)
@@ -151,8 +206,10 @@ FBM_RC <- methods::setRefClass(
         warning2("Inconsistency of backingfile size after adding columns.")
 
       .self$ncol <- ncol_after
-      .self$extptr <- methods::new("externalptr")  ## reinit pointer
-      if (.self$is_saved) .self$save()
+      if (.self$is_saved && save_again) .self$save()
+
+      ## reset pointers
+      .self$extptr <- .self$extptr_rw <- NIL_PTR
 
       invisible(.self)
     },
@@ -160,8 +217,8 @@ FBM_RC <- methods::setRefClass(
     show = function(typeBM) {
       if (missing(typeBM)) typeBM <- names(.self$type)
       cat(sprintf(
-        "A Filebacked Big Matrix of type '%s' with %s rows and %s columns.\n",
-        typeBM, .self$nrow, .self$ncol))
+        "A %sFilebacked Big Matrix of type '%s' with %s rows and %s columns.\n",
+        `if`(.self$is_read_only, "read-only ", ""), typeBM, .self$nrow, .self$ncol))
       invisible(.self)
     },
 
@@ -169,6 +226,9 @@ FBM_RC <- methods::setRefClass(
 
       if (!requireNamespace("bigmemory", quietly = TRUE))
         stop2("Please install package {bigmemory}.")
+
+      if (.self$is_read_only)
+        warning2("/!\\ This FBM is supposed to be read-only /!\\")
 
       dirname <- sub(file.path("", "$"), "", dirname(.self$backingfile))
       n <- .self$nrow + 0
@@ -195,6 +255,18 @@ FBM_RC <- methods::setRefClass(
     bm = function() {
       desc <- .self$bm.desc()
       bigmemory::attach.big.matrix(desc)
+    },
+
+    check_write_permissions = function() {
+      if (.self$is_read_only)
+        stop2("This FBM is read-only.")
+      if (file.access(.self$backingfile, 2) != 0)
+        stop2("You don't have write permissions for this FBM.")
+    },
+    check_dimensions = function() {
+      size <- .self$nrow * 1 * .self$ncol
+      if (file.size(.self$backingfile) != (size * .self$type_size))
+        stop2("Inconsistency between size of backingfile and dimensions.")
     }
   )
 )
@@ -225,7 +297,8 @@ FBM_RC$lock("nrow", "type")
 #'   existing one (which should be named by the `backingfile` parameter and have
 #'   an extension ".bk"). For example, this could be used to convert a
 #'   filebacked `big.matrix` from package **bigmemory** to a [FBM][FBM-class]
-#'   (see [the corresponding vignette](https://privefl.github.io/bigstatsr/articles/bigstatsr-and-bigmemory.html)).
+#'   (see [the corresponding vignette](http://bit.ly/2SRX5w4)).
+#' @param is_read_only Whether the FBM is read-only? Default is `FALSE`.
 #'
 #' @rdname FBM-class
 #'
@@ -236,7 +309,8 @@ FBM <- function(nrow, ncol,
                          "unsigned short", "unsigned char", "raw"),
                 init = NULL,
                 backingfile = tempfile(),
-                create_bk = TRUE) {
+                create_bk = TRUE,
+                is_read_only = FALSE) {
 
   type <- match.arg(type)
   do.call(methods::new, args = c(Class = "FBM", as.list(environment())))
@@ -255,19 +329,21 @@ FBM <- function(nrow, ncol,
 #'
 #' @examples
 #' X <- FBM(150, 5)
-#' X[] <- iris   ## you can replace with a df (factors -> integers)
+#' X[] <- iris   ## you can replace with a df (but factors -> integers)
 #' X2 <- as_FBM(iris)
 #' identical(X[], X2[])
+#'
 as_FBM <- function(x, type = c("double", "float", "integer",
                                "unsigned short", "unsigned char", "raw"),
-                   backingfile = tempfile()) {
+                   backingfile = tempfile(),
+                   is_read_only = FALSE) {
 
   if (is.matrix(x) || is.data.frame(x)) {
     FBM(nrow = nrow(x), ncol = ncol(x), init = x,
-        type = type, backingfile = backingfile)
+        type = type, backingfile = backingfile, is_read_only = is_read_only)
   } else {
-    stop2("'as_FBM()' is not implemented for class '%s'. %s",
-          class(x), "Feel free to open an issue.")
+    stop2("'as_FBM()' is not implemented for class '%s'.\n%s", class(x),
+          "Try to use 'big_copy()' instead. Otherwise, you can open an issue.")
   }
 }
 
@@ -303,9 +379,8 @@ NULL
 setMethod(
   '[', signature(x = "FBM"),
   Extract(
-    extract_vector = function(x, i) extractVec(x$address, i),
-    extract_matrix = function(x, i, j) extractMat(x$address, i, j)
-  )
+    extract_vector = extractVec,
+    extract_matrix = extractMat)
 )
 
 #' @param value The values to replace. Should be of length 1 or of the same
@@ -318,9 +393,9 @@ setMethod(
     replace_vector = function(x, i, value) {
 
       if (length(value) == 1) {
-        replaceVecOne(x$address, i, value[1])
+        replaceVecOne(x$address_rw, i, value[1])
       } else if (length(value) == length(i)) {
-        replaceVec(x$address, i, value)
+        replaceVec(x$address_rw, i, value)
       } else {
         stop2("'value' must be unique or of the length of 'x[i]'.")
       }
@@ -332,21 +407,21 @@ setMethod(
       if (is.data.frame(value)) {
 
         if (identical(dim(value), .dim)) {              ## data.frame
-          return(replaceDF(x$address, i, j, value))
+          return(replaceDF(x$address_rw, i, j, value))
         }
 
       } else {
 
         if (length(value) == 1)                         ## scalar
-          return(replaceMatOne(x$address, i, j, value[1]))
+          return(replaceMatOne(x$address_rw, i, j, value[1]))
 
         if (is.null(dim(value))) {                      ## vector
           if (length(value) == prod(.dim)) {
             dim(value) <- .dim
-            return(replaceMat(x$address, i, j, value))
+            return(replaceMat(x$address_rw, i, j, value))
           }
         } else if (identical(dim(value), .dim)) {       ## matrix
-          return(replaceMat(x$address, i, j, value))
+          return(replaceMat(x$address_rw, i, j, value))
         }
       }
 

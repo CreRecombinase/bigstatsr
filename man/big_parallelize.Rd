@@ -4,11 +4,17 @@
 \alias{big_parallelize}
 \title{Split-parApply-Combine}
 \usage{
-big_parallelize(X, p.FUN, p.combine = NULL, ind = cols_along(X),
-  ncores = nb_cores(), ...)
+big_parallelize(
+  X,
+  p.FUN,
+  p.combine = NULL,
+  ind = cols_along(X),
+  ncores = nb_cores(),
+  ...
+)
 }
 \arguments{
-\item{X}{A \link[=FBM-class]{FBM}.}
+\item{X}{An object of class \link[=FBM-class]{FBM}.}
 
 \item{p.FUN}{The function to be applied to each subset matrix.
 It must take a \link[=FBM-class]{Filebacked Big Matrix} as first argument and

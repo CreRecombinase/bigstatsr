@@ -1,3 +1,39 @@
+## bigstatsr 1.2.2
+
+- Function `big_colstats()` can now be run in parallel (added parameter `ncores`).
+
+## bigstatsr 1.2.1
+
+- It is now possible to use C++ FBM accessors without linking to {RcppArmadillo}.
+
+## bigstatsr 1.2.0
+
+- Functions `big_(c)prodMat()` and `big_(t)crossprodSelf()` now use much less memory, and may be faster.
+
+- Add `covar_from_df()` to convert a data frame with factors/characters to a numeric matrix using one-hot encoding.
+
+## bigstatsr 1.1.4
+
+- Remove some 'Suggests' dependencies.
+
+## bigstatsr 1.1.3
+
+- Add a new column `$all_conv` to output of `summary()` for `big_spLinReg()` and `big_spLogReg()` to check whether all models have stopped because of "no more improvement". Also add a new parameter `sort` to `summary()`.
+
+- Now `warn` (enabled by default) if some models may not have reached a minimum when using `big_spLinReg()` and `big_spLogReg()`.
+
+## bigstatsr 1.1.1
+
+- Fix `In .self$nrow * .self$ncol : NAs produced by integer overflow`.
+
+## bigstatsr 1.1.0
+
+- Make two different memory-mappings: one that is read-only (using `$address`) and one where it is possible to write (using `$address_rw`). This enables to use file permissions to prevent modifying data.
+
+- Also add a new field `$is_read_only` to be used to prevent modifying data (at least with `<-`) even when you have write permissions to it. Functions creating an FBM now gain a parameter `is_read_only`.
+
+- Make vector accessors (e.g. `X[1:10]`) faster.
+
 ## bigstatsr 1.0.0
 
 - Move some code to new packages {bigassertr} and {bigparallelr}.

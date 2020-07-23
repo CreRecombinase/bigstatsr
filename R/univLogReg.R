@@ -3,11 +3,14 @@
 univLogReg_sub <- function(X, ind, covar.train, y01.train, z0, w0,
                            ind.train, tol, maxiter) {
 
-  res <- IRLS(X, covar.train, y01.train, z0, w0,
-              ind.train, ind, tol, maxiter)
+  utils::capture.output(
+    res <- IRLS(X, covar.train, y01.train, z0, w0, ind.train, ind, tol, maxiter),
+    type = "message"
+  )
 
   # Using `glm` if not converged
-  indNoConv <- which(res$niter >= maxiter | is.na(res$estim))
+  score <- res$estim / res$std.err
+  indNoConv <- which(res$niter >= maxiter | is.na(score) | abs(score) < 1e-6)
   res$niter[indNoConv] <- NA
   for (j in indNoConv) {
     covar.train[, 1] <- X[ind.train, ind[j]]
@@ -103,6 +106,7 @@ big_univLogReg <- function(X, y01.train,
     lpval <- stats::pnorm(xtr, lower.tail = FALSE, log.p = TRUE)
     (log(2) + lpval) / log(10)
   }
+  environment(fun.pred) <- baseenv()
 
   structure(res,
             class = c("mhtest", "data.frame"),

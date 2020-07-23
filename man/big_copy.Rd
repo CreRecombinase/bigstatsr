@@ -2,11 +2,17 @@
 % Please edit documentation in R/FBM-copy.R
 \name{big_copy}
 \alias{big_copy}
-\title{Copy a Filebacked Big Matrix}
+\title{Copy as a Filebacked Big Matrix}
 \usage{
-big_copy(X, ind.row = rows_along(X), ind.col = cols_along(X),
-  type = typeof(X), backingfile = tempfile(),
-  block.size = block_size(length(ind.row)))
+big_copy(
+  X,
+  ind.row = rows_along(X),
+  ind.col = cols_along(X),
+  type = typeof(X),
+  backingfile = tempfile(),
+  block.size = block_size(length(ind.row)),
+  is_read_only = FALSE
+)
 }
 \arguments{
 \item{X}{Could be any matrix-like object.}
@@ -27,7 +33,7 @@ It has vocation to become the basis for a \code{FBM.code65536}.
 \item \code{"raw"} or \code{"unsigned char"}: can store integer values from 0 to 255.
 It is the basis for class \link[=FBM.code256-class]{FBM.code256} in order to
 access 256 arbitrary different numeric values.
-It is used in \href{https://goo.gl/pHCCmo}{package bigsnpr}.
+It is used in \href{https://goo.gl/pHCCmo}{package \strong{bigsnpr}}.
 }}
 
 \item{backingfile}{Path to the file storing the Big Matrix on disk.
@@ -36,12 +42,15 @@ Default stores in the temporary directory.}
 
 \item{block.size}{Maximum number of columns read at once.
 Default uses \link{block_size}.}
+
+\item{is_read_only}{Whether the FBM is read-only? Default is \code{FALSE}.}
 }
 \value{
-A copy of the \link[=FBM-class]{FBM}.
+A copy of \code{X} as a new \link[=FBM-class]{FBM} object.
 }
 \description{
-Copy a Filebacked Big Matrix with possible subsetting.
+Deep copy of a Filebacked Big Matrix with possible subsetting.
+This should also work for any matrix-like object.
 }
 \examples{
 X <- FBM(10, 10, init = 1:100)
@@ -50,7 +59,7 @@ X2 <- big_copy(X, ind.row = 1:5)
 X2[]
 
 mat <- matrix(101:200, 10)
-X3 <- big_copy(mat, type = "double")
+X3 <- big_copy(mat, type = "double")  # as_FBM() would be faster here
 X3[]
 
 X.code <- big_attachExtdata()

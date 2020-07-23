@@ -30,7 +30,7 @@ if (not_cran) {
 
     for (t in TEST.TYPES) {
 
-      X <- `if`(t == "raw", asFBMcode(x), big_copy(x, type = t))
+      X <- `if`(t == "raw", asFBMcode(x, TRUE), big_copy(x, type = t))
 
       for (covar in sample(lcovar, 1)) {
 
@@ -46,7 +46,7 @@ if (not_cran) {
         alphas <- c(runif(1, min = 0.1, max = 1), 1)
 
         mod.bigstatsr <- big_spLogReg(X, y, covar.train = covar, alphas = alphas,
-                                      dfmax = Inf, nlam.min = Inf,
+                                      dfmax = Inf, nlam.min = Inf, warn = FALSE,
                                       ncores = test_cores())
         lapply(mod.bigstatsr, function(mod) lapply(mod, function(fold) {
           if (fold$message != "Model saturated") expect_length(fold$lambda, 200)
@@ -67,7 +67,8 @@ if (not_cran) {
         mod.bigstatsr2 <- big_spLogReg(X, y[ind], ind.train = ind,
                                        covar.train = covar[ind, ],
                                        alphas = alphas,
-                                       ncores = test_cores())
+                                       ncores = test_cores(),
+                                       warn = FALSE)
         preds2 <- predict(mod.bigstatsr2, X, ind.row = (1:N)[-ind],
                           covar.row = covar[-ind, ])
         expect_gt(AUC(preds2, y[-ind]), 0.7)
@@ -92,7 +93,7 @@ if (not_cran) {
 
     for (t in TEST.TYPES) {
 
-      X <- `if`(t == "raw", asFBMcode(x), big_copy(x, type = t))
+      X <- `if`(t == "raw", asFBMcode(x, TRUE), big_copy(x, type = t))
 
       ind.col <- cols_along(X)[-set]
       ind.novar <- sample(ind.col, 10); X[, ind.novar] <- 100
@@ -108,7 +109,8 @@ if (not_cran) {
                                          ind.col = ind.col,
                                          covar.train = covar[ind, ],
                                          alphas = alphas,
-                                         ncores = test_cores()),
+                                         ncores = test_cores(),
+                                         warn = FALSE),
           "10 variables with low/no variation have been removed.", fixed = TRUE
         )
 
@@ -123,7 +125,8 @@ if (not_cran) {
           mod.bigstatsr4 <- big_spLogReg(X, y[ind], ind.train = ind,
                                          covar.train = covar[ind, ],
                                          alphas = alphas,
-                                         ncores = test_cores()),
+                                         ncores = test_cores(),
+                                         warn = FALSE),
           "10 variables with low/no variation have been removed.", fixed = TRUE
         )
         expect_equal(length(attr(mod.bigstatsr4, "ind.col")), M - 10)
@@ -137,7 +140,8 @@ if (not_cran) {
           mod.bigstatsr5 <- big_spLogReg(X, y[ind], ind.train = ind,
                                          covar.train = covar[ind, ],
                                          alphas = alphas, pf.X = pf,
-                                         ncores = test_cores()),
+                                         ncores = test_cores(),
+                                         warn = FALSE),
           "10 variables with low/no variation have been removed.", fixed = TRUE
         )
         preds5 <- predict(mod.bigstatsr5, X, ind.row = (1:N)[-ind],
@@ -149,7 +153,8 @@ if (not_cran) {
           mod.bigstatsr6 <- big_spLogReg(X, y[ind], ind.train = ind,
                                          covar.train = covar[ind, ],
                                          alphas = alphas, pf.X = pf,
-                                         ncores = test_cores()),
+                                         ncores = test_cores(),
+                                         warn = FALSE),
           "10 variables with low/no variation have been removed.", fixed = TRUE
         )
         lapply(unlist(mod.bigstatsr6, recursive = FALSE),
@@ -167,17 +172,18 @@ if (not_cran) {
 
     for (t in TEST.TYPES) {
 
-      X <- `if`(t == "raw", asFBMcode(x), big_copy(x, type = t))
+      X <- `if`(t == "raw", asFBMcode(x, TRUE), big_copy(x, type = t))
 
       for (covar in sample(lcovar, 1)) {
 
         alpha <- runif(1, min = 0.01, max = 1)
 
         expect_warning(big_spLogReg(X, y, covar.train = covar, alphas = alpha,
-                                    return.all = TRUE, ncores = test_cores()))
+                                    return.all = TRUE, warn = FALSE,
+                                    ncores = test_cores()))
 
         mod.bigstatsr4 <- big_spLogReg(X, y, covar.train = covar, alphas = alpha,
-                                       ncores = test_cores())
+                                       warn = FALSE, ncores = test_cores())
 
         expect_length(mod.bigstatsr4, 1)
         flatten <- mod.bigstatsr4[[1]]
@@ -204,7 +210,7 @@ if (not_cran) {
 
     for (t in TEST.TYPES) {
 
-      X <- `if`(t == "raw", asFBMcode(x), big_copy(x, type = t))
+      X <- `if`(t == "raw", asFBMcode(x, TRUE), big_copy(x, type = t))
 
       for (covar in sample(lcovar, 1)) {
 
@@ -216,7 +222,8 @@ if (not_cran) {
                                       covar.train = covar[ind, ],
                                       alphas = alphas,
                                       ind.sets = ind.sets,
-                                      ncores = test_cores())
+                                      ncores = test_cores(),
+                                      warn = FALSE)
         preds <- predict(mod.bigstatsr, X, covar.row = covar)
         expect_gt(AUC(preds[-ind], y[-ind]), 0.7)
 
@@ -225,7 +232,8 @@ if (not_cran) {
                                        covar.train = covar[ind, ],
                                        alphas = alphas,
                                        ind.sets = ind.sets,
-                                       ncores = test_cores())
+                                       ncores = test_cores(),
+                                       warn = FALSE)
         expect_equal(sapply(unlist(mod.bigstatsr2, recursive = FALSE),
                             function(x) x$intercept) + 5,
                      sapply(unlist(mod.bigstatsr, recursive = FALSE),
@@ -240,7 +248,8 @@ if (not_cran) {
                                        covar.train = covar[ind, ],
                                        alphas = alphas,
                                        ind.sets = ind.sets,
-                                       ncores = test_cores())
+                                       ncores = test_cores(),
+                                       warn = FALSE)
         expect_error(predict(mod.bigstatsr3, X, covar.row = covar),
                      "You forgot to provide 'base.row' in predict().")
         preds3 <- predict(mod.bigstatsr3, X, covar.row = covar, base.row = rep(0, N))
@@ -250,5 +259,58 @@ if (not_cran) {
   })
 
 }
+
+################################################################################
+
+test_that("Warns if not all converged", {
+  skip_if_not(not_cran)
+  set.seed(1)
+
+  # simulating some data
+  N <- 230
+  M <- 730
+  X <- FBM(N, M, init = rnorm(N * M, sd = 5))
+  y01 <- as.numeric((rowSums(X[, 1:10]) + 2 * rnorm(N)) > 0)
+  covar <- matrix(rnorm(N * 3), N)
+
+  ind.train <- sort(sample(nrow(X), 150))
+  ind.test <- setdiff(rows_along(X), ind.train)
+
+  # fitting model for multiple lambdas and alphas
+  ALPHAS <- c(1, 0.5, 0.1, 0.01)
+  expect_warning(
+    test <- big_spLogReg(X, y01[ind.train], ind.train = ind.train,
+                         covar.train = covar[ind.train, ],
+                         alphas = ALPHAS, K = 4),
+    "Some models may not have reached a minimum", fixed = TRUE
+  )
+
+  # peek at the models
+  test_summary <- summary(test)
+  expect_identical(test_summary$alpha, sort(ALPHAS))
+  expect_identical(test_summary$all_conv, c(FALSE, FALSE, TRUE, TRUE))
+  test_summary2 <- summary(test, sort = TRUE)
+  expect_identical(test_summary2$alpha, ALPHAS)
+  expect_identical(test_summary2$all_conv, c(TRUE, TRUE, FALSE, FALSE))
+  expect_false(is.unsorted(test_summary2$validation_loss))
+})
+
+################################################################################
+
+test_that("code is used for FBM.code256", {
+
+  # simulating some data
+  N <- 230
+  M <- 730
+  X <- FBM.code256(N, M, init = round(100 + rnorm(N * M, sd = 5)), code = rnorm(256))
+  y01 <- as.numeric((rowSums(X[, 1:10]) + rnorm(N)) > 0)
+  covar <- matrix(rnorm(N * 3), N)
+
+  test <- big_spLogReg(X, y01, K = 5)
+
+  X2 <- X$copy(code = -X$code256)
+  test2 <- big_spLogReg(X2, y01, K = 5)
+  expect_lt(print(cor(summary(test)$beta[[1]], summary(test2)$beta[[1]])), -0.7)
+})
 
 ################################################################################

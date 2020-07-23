@@ -4,13 +4,31 @@
 \alias{COPY_biglasso_main}
 \title{Sparse regression path}
 \usage{
-COPY_biglasso_main(X, y.train, ind.train, ind.col, covar.train,
-  family = c("gaussian", "binomial"), alphas = 1, K = 10,
-  ind.sets = NULL, nlambda = 200, lambda.min.ratio = if (n > p) 1e-04
-  else 0.001, nlam.min = 50, n.abort = 10, base.train = NULL,
-  pf.X = NULL, pf.covar = NULL, eps = 1e-05, max.iter = 1000,
-  dfmax = 50000, lambda.min = if (n > p) 1e-04 else 0.001,
-  return.all = FALSE, warn = FALSE, ncores = 1)
+COPY_biglasso_main(
+  X,
+  y.train,
+  ind.train,
+  ind.col,
+  covar.train,
+  family = c("gaussian", "binomial"),
+  alphas = 1,
+  K = 10,
+  ind.sets = NULL,
+  nlambda = 200,
+  lambda.min.ratio = if (n > p) 1e-04 else 0.001,
+  nlam.min = 50,
+  n.abort = 10,
+  base.train = NULL,
+  pf.X = NULL,
+  pf.covar = NULL,
+  eps = 1e-05,
+  max.iter = 1000,
+  dfmax = 50000,
+  lambda.min = if (n > p) 1e-04 else 0.001,
+  return.all = FALSE,
+  warn = TRUE,
+  ncores = 1
+)
 }
 \arguments{
 \item{family}{Either "gaussian" (linear) or "binomial" (logistic).}
@@ -51,7 +69,9 @@ Default is all \code{1}. The purpose of \code{pf.X} is to apply differential
 penalization if some coefficients are thought to be more likely than others
 to be in the model. Setting SOME to 0 allows to have unpenalized coefficients.}
 
-\item{pf.covar}{Same as \code{pf.X}, but for \code{covar.train}.}
+\item{pf.covar}{Same as \code{pf.X}, but for \code{covar.train}.
+You might want to set some to 0 as variables with large effects can mask
+small effects in penalized regression.}
 
 \item{eps}{Convergence threshold for inner coordinate descent.
 The algorithm iterates until the maximum change in the objective after any
@@ -69,7 +89,8 @@ now deprecated.}
 
 \item{return.all}{Deprecated. Now always return all models.}
 
-\item{warn}{Deprecated. Now return the reason of completion as \code{$message}.}
+\item{warn}{Whether to warn if some models may not have reached a minimum.
+Default is \code{TRUE}.}
 }
 \description{
 Fit solution paths for linear or logistic regression models penalized by

@@ -4,20 +4,22 @@
 \alias{summary.big_sp_list}
 \title{Summary method}
 \usage{
-\method{summary}{big_sp_list}(object, best.only = FALSE, ...)
+\method{summary}{big_sp_list}(object, best.only = FALSE, sort = FALSE, ...)
 }
 \arguments{
 \item{object}{An object of class \code{big_sp_list}.}
 
 \item{best.only}{Whether to return only one row corresponding to the best
-model? The best model is the one smallest \code{$validation_loss}.}
+model? The best model is the one smallest \verb{$validation_loss}.}
+
+\item{sort}{Whether to sort by \verb{$validation_loss}. Default is \code{FALSE}.}
 
 \item{...}{Not used.}
 }
 \value{
-A tibble with, for each \code{$alpha}, a mean \code{$validation_loss}, a mean
-vector of coefficients \code{$beta}, the corresponding number of non-zero
-coefficients \code{$nb_var}, and the reasons of method completion \code{$message}.
+A tibble with, for each \verb{$alpha}, a mean \verb{$validation_loss}, a mean
+vector of coefficients \verb{$beta}, the corresponding number of non-zero
+coefficients \verb{$nb_var}, and the reasons of method completion \verb{$message}.
 }
 \description{
 Summary method for class \code{big_sp_list}.

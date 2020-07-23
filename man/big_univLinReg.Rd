@@ -4,12 +4,18 @@
 \alias{big_univLinReg}
 \title{Column-wise linear regression}
 \usage{
-big_univLinReg(X, y.train, ind.train = rows_along(X),
-  ind.col = cols_along(X), covar.train = NULL, thr.eigval = 1e-04,
-  ncores = 1)
+big_univLinReg(
+  X,
+  y.train,
+  ind.train = rows_along(X),
+  ind.col = cols_along(X),
+  covar.train = NULL,
+  thr.eigval = 1e-04,
+  ncores = 1
+)
 }
 \arguments{
-\item{X}{A \link[=FBM-class]{FBM}.}
+\item{X}{An object of class \link[=FBM-class]{FBM}.}
 
 \item{y.train}{Vector of responses, corresponding to \code{ind.train}.}
 
@@ -22,7 +28,8 @@ If not specified, all columns are used. \strong{Don't use negative indices.}}
 
 \item{covar.train}{Matrix of covariables to be added in each model to correct
 for confounders (e.g. the scores of PCA), corresponding to \code{ind.train}.
-Default is \code{NULL} and corresponds to only adding an intercept to each model.}
+Default is \code{NULL} and corresponds to only adding an intercept to each model.
+You can use \code{\link[=covar_from_df]{covar_from_df()}} to convert from a data frame.}
 
 \item{thr.eigval}{Threshold to remove "insignificant" singular vectors.
 Default is \code{1e-4}.}

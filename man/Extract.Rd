@@ -7,15 +7,15 @@
 Extract(extract_vector, extract_matrix)
 }
 \arguments{
-\item{extract_vector}{A function in the form of \code{function(x, i)} that takes
+\item{extract_vector}{A function in the form of \verb{function(x, i)} that takes
 a subset of \code{x} based on a single vector of indices \code{i} and returns a vector.}
 
-\item{extract_matrix}{A function in the form of \code{function(x, i, j)} that
+\item{extract_matrix}{A function in the form of \verb{function(x, i, j)} that
 takes a subset of \code{x} based on two vectors of indices \code{i} and \code{j} and returns
 a matrix.}
 }
 \value{
-A function in the form of \code{function(x, i, j, ..., drop = TRUE)} that
+A function in the form of \verb{function(x, i, j, ..., drop = TRUE)} that
 is meant to be used as a method for \code{[} for a custom type.
 }
 \description{
@@ -27,10 +27,6 @@ integer vectors. The converted indices are provided as the \code{i} parameter of
 implementing the extraction mechanism for custom matrix-like types.
 }
 \details{
-The custom type must implement methods for \code{dim} for this function
-to work. Implementing methods for \code{nrow} and \code{ncol} is not necessary
-as the default method of those generics calls \code{dim} internally.
-
 \strong{This idea initially comes from \href{https://goo.gl/3RDNQG}{package crochet}.}
 }
 \keyword{internal}

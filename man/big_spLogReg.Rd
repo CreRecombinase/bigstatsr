@@ -4,14 +4,29 @@
 \alias{big_spLogReg}
 \title{Sparse logistic regression}
 \usage{
-big_spLogReg(X, y01.train, ind.train = rows_along(X),
-  ind.col = cols_along(X), covar.train = NULL, base.train = NULL,
-  pf.X = NULL, pf.covar = NULL, alphas = 1, K = 10,
-  ind.sets = NULL, nlambda = 200, nlam.min = 50, n.abort = 10,
-  dfmax = 50000, ncores = 1, ...)
+big_spLogReg(
+  X,
+  y01.train,
+  ind.train = rows_along(X),
+  ind.col = cols_along(X),
+  covar.train = NULL,
+  base.train = NULL,
+  pf.X = NULL,
+  pf.covar = NULL,
+  alphas = 1,
+  K = 10,
+  ind.sets = NULL,
+  nlambda = 200,
+  nlam.min = 50,
+  n.abort = 10,
+  dfmax = 50000,
+  warn = TRUE,
+  ncores = 1,
+  ...
+)
 }
 \arguments{
-\item{X}{A \link[=FBM-class]{FBM}.}
+\item{X}{An object of class \link[=FBM-class]{FBM}.}
 
 \item{y01.train}{Vector of responses, corresponding to \code{ind.train}.
 \strong{Must be only 0s and 1s.}}
@@ -25,7 +40,8 @@ If not specified, all columns are used. \strong{Don't use negative indices.}}
 
 \item{covar.train}{Matrix of covariables to be added in each model to correct
 for confounders (e.g. the scores of PCA), corresponding to \code{ind.train}.
-Default is \code{NULL} and corresponds to only adding an intercept to each model.}
+Default is \code{NULL} and corresponds to only adding an intercept to each model.
+You can use \code{\link[=covar_from_df]{covar_from_df()}} to convert from a data frame.}
 
 \item{base.train}{Vector of base predictions. Model will be learned starting
 from these predictions. This can be useful if you want to previously fit
@@ -37,7 +53,9 @@ Default is all \code{1}. The purpose of \code{pf.X} is to apply differential
 penalization if some coefficients are thought to be more likely than others
 to be in the model. Setting SOME to 0 allows to have unpenalized coefficients.}
 
-\item{pf.covar}{Same as \code{pf.X}, but for \code{covar.train}.}
+\item{pf.covar}{Same as \code{pf.X}, but for \code{covar.train}.
+You might want to set some to 0 as variables with large effects can mask
+small effects in penalized regression.}
 
 \item{alphas}{The elastic-net mixing parameter that controls the relative
 contribution from the lasso (l1) and the ridge (l2) penalty. The penalty is
@@ -65,22 +83,25 @@ set must decrease before stopping. Default is \code{10}.}
 \code{50e3} because, for large data sets, computational burden may be
 heavy for models with a large number of nonzero coefficients.}
 
+\item{warn}{Whether to warn if some models may not have reached a minimum.
+Default is \code{TRUE}.}
+
 \item{ncores}{Number of cores used. Default doesn't use parallelism.
 You may use \link{nb_cores}.}
 
-\item{...}{Arguments passed on to \code{COPY_biglasso_main}
-\describe{
-  \item{lambda.min.ratio}{The smallest value for lambda, \strong{as a fraction of
+\item{...}{
+  Arguments passed on to \code{\link[=COPY_biglasso_main]{COPY_biglasso_main}}
+  \describe{
+    \item{\code{lambda.min.ratio}}{The smallest value for lambda, \strong{as a fraction of
 lambda.max}. Default is \code{.0001} if the number of observations is larger than
 the number of variables and \code{.001} otherwise.}
-  \item{eps}{Convergence threshold for inner coordinate descent.
+    \item{\code{eps}}{Convergence threshold for inner coordinate descent.
 The algorithm iterates until the maximum change in the objective after any
 coefficient update is less than \code{eps} times the null deviance.
 Default value is \code{1e-5}.}
-  \item{max.iter}{Maximum number of iterations. Default is \code{1000}.}
-  \item{warn}{Deprecated. Now return the reason of completion as \code{$message}.}
-  \item{return.all}{Deprecated. Now always return all models.}
-}}
+    \item{\code{max.iter}}{Maximum number of iterations. Default is \code{1000}.}
+    \item{\code{return.all}}{Deprecated. Now always return all models.}
+  }}
 }
 \value{
 Return an object of class \code{big_sp_list} (a list of \code{length(alphas)}
@@ -131,11 +152,12 @@ ind.test <- setdiff(rows_along(X), ind.train)
 # fitting model for multiple lambdas and alphas
 test <- big_spLogReg(X, y01[ind.train], ind.train = ind.train,
                      covar.train = covar[ind.train, ],
-                     alphas = c(1, 0.5, 0.1, 0.01))
+                     alphas = c(1, 0.5, 0.1, 0.01), warn = FALSE)
 
 # peek at the models
 plot(test)
-summary(test)
+summary(test, sort = TRUE)
+summary(test, sort = TRUE)$message
 
 # prediction for other data -> only the best alpha is used
 summary(test, best.only = TRUE)

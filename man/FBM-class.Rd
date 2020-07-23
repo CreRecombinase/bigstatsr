@@ -8,12 +8,22 @@
 \alias{as_FBM}
 \title{Class FBM}
 \usage{
-FBM(nrow, ncol, type = c("double", "float", "integer", "unsigned short",
-  "unsigned char", "raw"), init = NULL, backingfile = tempfile(),
-  create_bk = TRUE)
+FBM(
+  nrow,
+  ncol,
+  type = c("double", "float", "integer", "unsigned short", "unsigned char", "raw"),
+  init = NULL,
+  backingfile = tempfile(),
+  create_bk = TRUE,
+  is_read_only = FALSE
+)
 
-as_FBM(x, type = c("double", "float", "integer", "unsigned short",
-  "unsigned char", "raw"), backingfile = tempfile())
+as_FBM(
+  x,
+  type = c("double", "float", "integer", "unsigned short", "unsigned char", "raw"),
+  backingfile = tempfile(),
+  is_read_only = FALSE
+)
 }
 \arguments{
 \item{nrow}{Number of rows.}
@@ -30,7 +40,7 @@ It has vocation to become the basis for a \code{FBM.code65536}.
 \item \code{"raw"} or \code{"unsigned char"}: can store integer values from 0 to 255.
 It is the basis for class \link[=FBM.code256-class]{FBM.code256} in order to
 access 256 arbitrary different numeric values.
-It is used in \href{https://goo.gl/pHCCmo}{package bigsnpr}.
+It is used in \href{https://goo.gl/pHCCmo}{package \strong{bigsnpr}}.
 }}
 
 \item{init}{Either a single value (e.g. \code{0}) or as many value as the number
@@ -44,39 +54,50 @@ Default stores in the temporary directory.}
 existing one (which should be named by the \code{backingfile} parameter and have
 an extension ".bk"). For example, this could be used to convert a
 filebacked \code{big.matrix} from package \strong{bigmemory} to a \link[=FBM-class]{FBM}
-(see \href{https://privefl.github.io/bigstatsr/articles/bigstatsr-and-bigmemory.html}{the corresponding vignette}).}
+(see \href{http://bit.ly/2SRX5w4}{the corresponding vignette}).}
+
+\item{is_read_only}{Whether the FBM is read-only? Default is \code{FALSE}.}
 
 \item{x}{A matrix or an data frame (2-dimensional data).}
 }
 \description{
 A reference class for storing and accessing matrix-like data stored in files
 on disk. This is very similar to Filebacked Big Matrices provided by the
-\strong{bigmemory} package. Yet, the implementation is lighter.
+\strong{bigmemory} package (see \href{http://bit.ly/2SRX5w4}{the corresponding vignette}).
 
 Convert a matrix (or a data frame) to an FBM.
 }
 \details{
-An FBM object has many field:
+An object of class FBM has many fields:
 \itemize{
-\item \code{$address}: address of the external pointer containing the underlying
-C++ object, to be used as a \code{XPtr<FBM>} in C++ code
-\item \code{$extptr}: use \code{$address} instead
-\item \code{$nrow}
-\item \code{$ncol}
-\item \code{$type}
-\item \code{$backingfile} or \code{$bk}: File with extension 'bk' that stores the numeric
+\item \verb{$address}: address of the external pointer containing the underlying
+C++ object for read-only mapping, to be used as a \verb{XPtr<FBM>} in C++ code
+\item \verb{$extptr}: (internal) use \verb{$address} instead
+\item \verb{$address_rw}: address of the external pointer containing the underlying
+C++ object for read/write mapping, to be used as a \verb{XPtr<FBM_RW>} in C++ code
+\item \verb{$extptr_rw}: (internal) use \verb{$address_rw} instead
+\item \verb{$nrow}: number of rows
+\item \verb{$ncol}: number of columns
+\item \verb{$type}: (internal) use \code{type_size} or \code{type_chr} instead
+\item \verb{$type_chr}: FBM type as character, e.g. "double"
+\item \verb{$type_size}: size of FBM type in bytes (e.g. "double" is 8 and "float" is 4)
+\item \verb{$backingfile} or \verb{$bk}: File with extension 'bk' that stores the numeric
 data of the FBM
-\item \code{$rds}: 'rds' file (that may not exist) corresponding to the 'bk' file
-\item \code{$is_saved}: whether this object is stored in \code{$rds}?
+\item \verb{$rds}: 'rds' file (that may not exist) corresponding to the 'bk' file
+\item \verb{$is_saved}: whether this object is stored in \verb{$rds}?
+\item \verb{$is_read_only}: whether it is (not) allowed to modify data?
 }
 
 And some methods:
 \itemize{
-\item \code{$save()}: Save the FBM object in \code{$rds}. Returns the FBM.
-\item \code{add_columns(<ncol_add>)}: Add some columns to the FBM by appending the
+\item \verb{$save()}: Save the FBM object in \verb{$rds}. Returns the FBM.
+\item \verb{add_columns(<ncol_add>)}: Add some columns to the FBM by appending the
 backingfile with some data. Returns the FBM invisibly.
-\item \code{$bm()}: Get this object as a \code{filebacked.big.matrix}.
-\item \code{$bm.desc()}: Get this object as a \code{filebacked.big.matrix} descriptor.
+\item \verb{$bm()}: Get this object as a \code{filebacked.big.matrix}
+to be used by package {bigmemory}.
+\item \verb{$bm.desc()}: Get this object as a \code{filebacked.big.matrix} descriptor
+to be used by package {bigmemory}.
+\item \verb{$check_write_permissions()}: Error if the FBM is read-only.
 }
 }
 
@@ -94,12 +115,14 @@ X[1, ]  # not recommended for large matrices
 X[, -1]
 X[, c(TRUE, FALSE)]
 X[cbind(1:10, 1:10)] <- NA_real_
-X[]
+
+X[]  # access as standard R matrix
 
 X <- FBM(150, 5)
-X[] <- iris   ## you can replace with a df (factors -> integers)
+X[] <- iris   ## you can replace with a df (but factors -> integers)
 X2 <- as_FBM(iris)
 identical(X[], X2[])
+
 }
 \seealso{
 \link{big_copy}
